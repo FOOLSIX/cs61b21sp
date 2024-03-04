@@ -1,24 +1,64 @@
 package gitlet;
 
+import java.io.File;
+
+
 /** Driver class for Gitlet, a subset of the Git version-control system.
- *  @author TODO
+ *  @author 2580368016
  */
 public class Main {
 
     /** Usage: java gitlet.Main ARGS, where ARGS contains
      *  <COMMAND> <OPERAND1> <OPERAND2> ... 
      */
+
+
+    private static void incorrectOperands() {
+        System.out.println("Incorrect operands.");
+        System.exit(0);
+    }
+
+    private static void checkInit() {
+        if (Repository.GITLET_DIR.exists())
+            return;
+        System.out.println("Not in an initialized Gitlet directory.");
+        System.exit(0);
+    }
+
     public static void main(String[] args) {
-        // TODO: what if args is empty?
+        if(args.length == 0) {
+            System.out.println("Please enter a command.");
+            System.exit(0);
+        }
         String firstArg = args[0];
         switch(firstArg) {
             case "init":
-                // TODO: handle the `init` command
+                Repository.initRepository();
                 break;
             case "add":
-                // TODO: handle the `add [filename]` command
+                checkInit();
+
+                if (args.length != 2)
+                    incorrectOperands();
+                File fileToBeAdded = Utils.join(Repository.CWD, args[1]);
+                if (!fileToBeAdded.exists()) {
+                    System.out.println("File does not exist.");
+                    System.exit(0);
+                }
+
+                Repository.add(args[1]);
                 break;
-            // TODO: FILL THE REST IN
+            case "commit":
+                checkInit();
+
+                if (args.length != 2)
+                    incorrectOperands();
+
+                Repository.commit(args[1]);
+                break;
+
+            default:
+                System.out.println("No command with that name exists.");
         }
     }
 }
