@@ -25,7 +25,7 @@ public class Repository {
     /** The .gitlet directory. */
     public static final File GITLET_DIR = join(CWD, ".gitlet");
     public static final File STATUE_FILE = join(GITLET_DIR, "statue");
-    public static final File STAGING_DIR = join(GITLET_DIR, "temp");
+    public static final File STAGING_DIR = join(GITLET_DIR, "staging");
     public static final File OBJECT_DIR = join(GITLET_DIR, "objects");
     public static Statue currentStatue = new Statue();
 
@@ -45,10 +45,11 @@ public class Repository {
 
         GITLET_DIR.mkdir();
         STAGING_DIR.mkdir();
+        OBJECT_DIR.mkdir();
 
         Commit initCommit = new Commit();
-        currentStatue.hashToCommit.put(sha1(initCommit), initCommit);
-        currentStatue.branchNameToCommit.put(currentStatue.head, initCommit);
+        initCommit.save();
+        currentStatue.branchNameToCommit.put(currentStatue.head, initCommit.SHA1_HASHCODE);
 
         saveStatue();
     }
@@ -59,7 +60,7 @@ public class Repository {
         File fileToBeAdded = join(CWD, fileName);
         File stagingFile = join(STAGING_DIR, fileName);
 
-        Commit cur = currentStatue.branchNameToCommit.get(currentStatue.head);
+        Commit cur = currentStatue.getCurrentCommit();
 
         if (cur.FILENAME_TO_BLOBHASH.containsKey(fileName)) {
             if (stagingFile.exists()) {
@@ -68,7 +69,7 @@ public class Repository {
             }
 
         } else {
-            writeObject(stagingFile, readContents(fileToBeAdded));
+            writeContents(stagingFile, readContents(fileToBeAdded));
             currentStatue.StagingArea.add(fileName);
         }
 
@@ -77,16 +78,36 @@ public class Repository {
 
     public static void commit(String message) {
         loadStatue();
-
-        Commit cur = currentStatue.getCurrentCommit();
-        Commit newCommit = new Commit(message, new Date(), new ArrayList<>(Collections.singletonList(cur)));
-        for (String filename : currentStatue.StagingArea) {
-            Blob blob = new Blob(join(Repository.CWD, filename));
-            newCommit.FILENAME_TO_BLOBHASH.put(filename, blob.sha1HashCode);
-
+        Commit lastCommit = currentStatue.getCurrentCommit();
+        if (currentStatue.StagingArea.size() == 0) {
+            System.out.println("No changes added to the commit.");
+            return;
         }
 
+        Commit newCommit = new Commit(message, new ArrayList<>(Collections.singletonList(lastCommit.SHA1_HASHCODE)));
+        currentStatue.updateHead(newCommit.SHA1_HASHCODE);
 
+        for (String filename : currentStatue.StagingArea) {
+            Blob blob = new Blob(join(Repository.CWD, filename));
+            newCommit.FILENAME_TO_BLOBHASH.put(filename, blob.SHA1_HASHCODE);
+            blob.save();
+            join(Repository.STAGING_DIR, filename).delete();
+        }
+        currentStatue.StagingArea.clear();
+        newCommit.save();
+        saveStatue();
+
+    }
+
+    public static void log() {
+        loadStatue();
+        Commit curCommit = currentStatue.getCurrentCommit();
+        while (true) {
+            curCommit.printCommit();
+            if (curCommit.FATHER == null)
+                break;
+            curCommit = Commit.getCommit(curCommit.FATHER.get(0));
+        }
     }
 
     /* TODO: fill in the rest of this class. */

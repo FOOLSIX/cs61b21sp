@@ -1,13 +1,13 @@
 package gitlet;
 
+import java.io.DataInput;
 import java.io.Serializable;
 import java.util.*;
 
 /** Represents a gitlet commit object.
- *  TODO: It's a good idea to give a description here of what else this Class
  *  does at a high level.
  *
- *  @author TODO
+ *  @author 2580368016
  */
 public class Commit implements Serializable {
     /*
@@ -17,29 +17,51 @@ public class Commit implements Serializable {
      */
 
     /** The message of this Commit. */
-    private final String MESSAGE;
+    public final String MESSAGE;
     /** The date of this Commit. */
-    private final Date DATE;
-    public final List<Commit> FATHER;
+    public final Date DATE;
+    public final List<String> FATHER;
     /** Save all filenames and map to its blob's hashcode */
     public final Map<String, String> FILENAME_TO_BLOBHASH = new HashMap<>();
     public final String SHA1_HASHCODE;
 
-    public Commit(String msg, Date d, List<Commit> fa) {
+    public Commit(String msg, List<String> fa) {
         MESSAGE = msg;
-        DATE = d;
-        for (Commit f : fa) {
-            FILENAME_TO_BLOBHASH.putAll(f.FILENAME_TO_BLOBHASH);
+        DATE = new Date();
+        for (String f : fa) {
+            Commit father = getCommit(f);
+            FILENAME_TO_BLOBHASH.putAll(father.FILENAME_TO_BLOBHASH);
         }
         FATHER = fa;
-        SHA1_HASHCODE = Utils.sha1(msg, d, fa);
+        HashSet<String> hashArgs = new HashSet<>();
+        hashArgs.add(MESSAGE);
+        hashArgs.add(DATE.toString());
+        hashArgs.addAll(fa);
+        hashArgs.addAll(FILENAME_TO_BLOBHASH.values());
+        SHA1_HASHCODE = Utils.sha1(hashArgs.toArray());
     }
 
     public Commit() {
         MESSAGE = "initial commit";
         DATE = new Date(1970, 1, 1, 0,0, 0);
         FATHER = null;
-        SHA1_HASHCODE = Utils.sha1(MESSAGE, DATE);
+        HashSet<String> hashArgs = new HashSet<>();
+        SHA1_HASHCODE = Utils.sha1(MESSAGE, DATE.toString());
+    }
+
+    public void save() {
+        Utils.writeObject(Utils.join(Repository.OBJECT_DIR, SHA1_HASHCODE), this);
+    }
+
+    public void printCommit() {
+        System.out.println("===");
+        System.out.println("commit " + SHA1_HASHCODE);
+        System.out.println("Date:" + DATE.toString());//maybe bug
+        System.out.println(MESSAGE + '\n');
+    }
+
+    public static Commit getCommit(String sha1HashCode) {
+        return Utils.readObject(Utils.join(Repository.OBJECT_DIR, sha1HashCode), Commit.class);
     }
 
 }

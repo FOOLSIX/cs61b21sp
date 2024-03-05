@@ -6,18 +6,20 @@ import java.util.*;
 public class Statue implements Serializable {
     /** The branch currently pointed to */
     public String head;
-    public Set<String> branches;
     public Set<String> StagingArea;
-    public Map<String, Commit> branchNameToCommit;
+    public Map<String, String> branchNameToCommit;
 
     public Statue() {
         head = "master";
-        branches = new TreeSet<>();
         StagingArea = new HashSet<>();
         branchNameToCommit = new TreeMap<>();
     }
 
     public Commit getCurrentCommit() {
-        return this.branchNameToCommit.get(this.head);
+        return Utils.readObject(Utils.join(Repository.OBJECT_DIR, branchNameToCommit.get(head)), Commit.class);
+    }
+
+    public void updateHead(String commitHash) {
+        branchNameToCommit.replace(head, commitHash);
     }
 }

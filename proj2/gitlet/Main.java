@@ -51,11 +51,20 @@ public class Main {
             case "commit":
                 checkInit();
 
-                if (args.length != 2)
-                    incorrectOperands();
+                if (args.length != 2) {
+                    System.out.println("Please enter a commit message.");
+                    System.exit(0);
+                }
 
                 Repository.commit(args[1]);
                 break;
+            case "log":
+                checkInit();
+                if (args.length > 1)
+                    incorrectOperands();
+                Repository.log();
+                break;
+
 
             default:
                 System.out.println("No command with that name exists.");
