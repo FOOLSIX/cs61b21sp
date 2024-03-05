@@ -43,25 +43,38 @@ public class Commit implements Serializable {
 
     public Commit() {
         MESSAGE = "initial commit";
-        DATE = new Date(1970, 1, 1, 0,0, 0);
+        DATE = new Date(0);
         FATHER = null;
         HashSet<String> hashArgs = new HashSet<>();
         SHA1_HASHCODE = Utils.sha1(MESSAGE, DATE.toString());
     }
 
     public void save() {
-        Utils.writeObject(Utils.join(Repository.OBJECT_DIR, SHA1_HASHCODE), this);
+        Utils.writeObject(Utils.join(Repository.COMMIT_DIR, SHA1_HASHCODE), this);
     }
 
     public void printCommit() {
         System.out.println("===");
         System.out.println("commit " + SHA1_HASHCODE);
-        System.out.println("Date:" + DATE.toString());//maybe bug
+        if (FATHER!= null && FATHER.size() > 1) {
+            for (int i = 0; i < FATHER.size(); ++i) {
+                System.out.print(FATHER.get(i).substring(0, 6));
+                if (i == FATHER.size() - 1)
+                    System.out.print('\n');
+                else
+                    System.out.print(' ');
+            }
+        }
+        //AG should be this
+        Formatter formatter = new Formatter();
+        formatter.format("%ta %tb %te %tT %tY %tz", DATE,DATE,DATE,DATE,DATE,DATE);
+        System.out.println("Date: " + formatter);
         System.out.println(MESSAGE + '\n');
+
     }
 
     public static Commit getCommit(String sha1HashCode) {
-        return Utils.readObject(Utils.join(Repository.OBJECT_DIR, sha1HashCode), Commit.class);
+        return Utils.readObject(Utils.join(Repository.COMMIT_DIR, sha1HashCode), Commit.class);
     }
 
 }

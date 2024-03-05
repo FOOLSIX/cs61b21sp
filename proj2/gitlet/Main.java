@@ -1,6 +1,7 @@
 package gitlet;
 
 import java.io.File;
+import java.util.Objects;
 
 
 /** Driver class for Gitlet, a subset of the Git version-control system.
@@ -60,12 +61,69 @@ public class Main {
                 break;
             case "log":
                 checkInit();
-                if (args.length > 1)
+                if (args.length != 1)
                     incorrectOperands();
                 Repository.log();
                 break;
+            case "rm":
+                checkInit();
+                if (args.length != 2) {
+                    incorrectOperands();
+                }
+                Repository.rm(args[1]);
+                break;
+            case "global-log":
+                checkInit();
+                if (args.length != 1) {
+                    incorrectOperands();
+                }
+                Repository.global_log();
+                break;
+            case "find":
+                checkInit();
+                if (args.length != 2) {
+                    incorrectOperands();
+                }
+                Repository.find(args[1]);
+                break;
+            case "statue":
+                checkInit();
+                if (args.length != 1) {
+                    incorrectOperands();
+                }
+                Repository.statue();
+                break;
+            case "checkout":
+                checkInit();
+                if (args.length == 2) {
+                    Repository.checkout3(args[1]);
+                } else if (args.length == 3 && Objects.equals(args[1],"--")) {
+                    Repository.checkout1(args[2]);
+                } else if (args.length == 4 && Objects.equals(args[2],"--")) {
+                    Repository.checkout2(args[1], args[3]);
+                } else {
+                    incorrectOperands();
+                }
+                break;
+            case "branch":
+                checkInit();
+                if (args.length != 2) {
+                    incorrectOperands();
+                }
+                Repository.branch(args[1]);
+                break;
+            case "rm-branch":
+                checkInit();
 
+                break;
+            case "reset":
+                checkInit();
 
+                break;
+            case "merge":
+                checkInit();
+
+                break;
             default:
                 System.out.println("No command with that name exists.");
         }
