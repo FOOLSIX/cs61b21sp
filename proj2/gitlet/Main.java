@@ -52,9 +52,16 @@ public class Main {
             case "commit":
                 checkInit();
 
-                if (args.length != 2) {
+                if (args.length < 2 ) {
                     System.out.println("Please enter a commit message.");
                     System.exit(0);
+                } else if (args.length > 2) {
+                    incorrectOperands();
+                } else {
+                    if (Objects.equals(args[1], "")) {
+                        System.out.println("Please enter a commit message.");
+                        System.exit(0);
+                    }
                 }
 
                 Repository.commit(args[1]);
@@ -86,12 +93,12 @@ public class Main {
                 }
                 Repository.find(args[1]);
                 break;
-            case "statue":
+            case "status":
                 checkInit();
                 if (args.length != 1) {
                     incorrectOperands();
                 }
-                Repository.statue();
+                Repository.status();
                 break;
             case "checkout":
                 checkInit();

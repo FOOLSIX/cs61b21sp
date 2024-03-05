@@ -178,7 +178,7 @@ public class Repository {
         }
     }
 
-    public static void statue() {
+    public static void status() {
         loadStatue();
 
         System.out.println("=== Branches ===");
