@@ -275,7 +275,7 @@ public class Repository {
             Commit cur = currentStatus.getCurrentCommit();
             Commit branch = readObject(join(COMMIT_DIR,
                     currentStatus.branchNameToCommit.get(branchName)), Commit.class);
-
+            //try to delete tracked files
             List<String> cwdFiles = plainFilenamesIn(CWD);
             if (cwdFiles != null) {
                 for (String file : cwdFiles) {
@@ -287,18 +287,24 @@ public class Repository {
                     }
                 }
             }
-
+            //restore files
             for (var e : branch.FILENAME_TO_BLOBHASH.entrySet()) {
                 Blob blob = readObject(join(BLOB_DIR, e.getValue()), Blob.class);
                 writeContents(join(CWD, e.getKey()), blob.CONTENT);
             }
-
+            //delete tracked files
             for (var e : cur.FILENAME_TO_BLOBHASH.entrySet()) {
                 File file = join(CWD, e.getKey());
                 if (file.exists() && !branch.FILENAME_TO_BLOBHASH.containsKey(e.getKey())) {
                     file.delete();
                 }
             }
+            //clear staged area
+            for (String filename : plainFilenamesIn(STAGED_DIR)) {
+                join(STAGED_DIR, filename).delete();
+            }
+            currentStatus.stagingArea.clear();
+            currentStatus.deletedArea.clear();
 
             currentStatus.head = branchName;
             currentStatus.branchNameToCommit.put(branchName, branch.SHA1_HASHCODE);
@@ -332,13 +338,19 @@ public class Repository {
     }
 
     public static void reset(String commitID) {
-        File commitFile = join(COMMIT_DIR, commitID);
-        if (!commitFile.exists()) {
+        if (!join(COMMIT_DIR, commitID).exists()) {
             notFoundCommit();
         }
+        branch(commitID);
         loadStatus();
-        currentStatus.branchNameToCommit.put(currentStatus.head, commitID);
-        checkout3(currentStatus.head);
+        String originBranch = currentStatus.head;
+        currentStatus.branchNameToCommit.replace(commitID, commitID);
         saveStatus();
+        checkout3(commitID);
+        loadStatus();
+        currentStatus.head = originBranch;
+        currentStatus.branchNameToCommit.replace(originBranch, commitID);
+        saveStatus();
+        rmBranch(commitID);
     }
 }
