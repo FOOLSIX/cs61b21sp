@@ -31,7 +31,7 @@ public class Repository {
      * The .gitlet directory.
      */
     public static final File GITLET_DIR = join(CWD, ".gitlet");
-    public static final File Status_FILE = join(GITLET_DIR, "Status");
+    public static final File STATUS_FILE = join(GITLET_DIR, "Status");
     public static final File STAGED_DIR = join(GITLET_DIR, "staged");
     public static final File REMOVED_DIR = join(GITLET_DIR, "removed");
     public static final File OBJECT_DIR = join(GITLET_DIR, "objects");
@@ -40,16 +40,17 @@ public class Repository {
     static Status currentStatus = new Status();
 
     public static void loadStatus() {
-        currentStatus = readObject(Status_FILE, Status.class);
+        currentStatus = readObject(STATUS_FILE, Status.class);
     }
 
     public static void saveStatus() {
-        writeObject(Status_FILE, currentStatus);
+        writeObject(STATUS_FILE, currentStatus);
     }
 
     public static void initRepository() {
         if (GITLET_DIR.exists()) {
-            System.out.println("A Gitlet version-control system already exists in the current directory.");
+            System.out.println("A Gitlet version-control system already "
+                    + "exists in the current directory.");
             System.exit(0);
         }
 
@@ -99,7 +100,8 @@ public class Repository {
             return;
         }
 
-        Commit newCommit = new Commit(message, new ArrayList<>(Collections.singletonList(lastCommit.SHA1_HASHCODE)));
+        Commit newCommit = new Commit(message,
+                new ArrayList<>(Collections.singletonList(lastCommit.SHA1_HASHCODE)));
         currentStatus.updateHead(newCommit.SHA1_HASHCODE);
 
 
@@ -218,26 +220,46 @@ public class Repository {
         System.out.println("=== Untracked Files ===\n");
     }
 
+    private static void checkoutNotFoundCommit() {
+        System.out.println("No commit with that id exists.");
+        System.exit(0);
+    }
     public static void checkout1(String filename) {
         loadStatus();
         checkout2(currentStatus.getCurrentCommit().SHA1_HASHCODE, filename);
 
     }
 
-    public static void checkout2(String commitID, String filename) { //TODO: short id
-        File file = join(COMMIT_DIR, commitID);
-        if (!file.exists()) {
-            System.out.println("No commit with that id exists.");
-            return;
+    public static void checkout2(String commitID, String filename) {
+        File file = null;
+        if(commitID.length() == 40) {
+            file = join(COMMIT_DIR, commitID);
+            if (!file.exists()) {
+                checkoutNotFoundCommit();
+            }
+        } else {
+            if (Utils.plainFilenamesIn(COMMIT_DIR) == null) {
+                checkoutNotFoundCommit();
+            }
+            for (String ID : Utils.plainFilenamesIn(COMMIT_DIR)) {
+                String shortID = ID.substring(0, commitID.length() - 1);
+                if (Objects.equals(shortID, commitID)) {
+                    file = join(COMMIT_DIR, ID);
+                    break;
+                }
+            }
         }
-
+        if (file == null) {
+            checkoutNotFoundCommit();
+        }
         Commit cur = readObject(file, Commit.class);
 
         if (!cur.FILENAME_TO_BLOBHASH.containsKey(filename)) {
             System.out.println("File does not exist in that commit.");
         } else {
             
-            Blob blob = readObject(join(BLOB_DIR, cur.FILENAME_TO_BLOBHASH.get(filename)), Blob.class);
+            Blob blob = readObject(join(BLOB_DIR,
+                    cur.FILENAME_TO_BLOBHASH.get(filename)), Blob.class);
             writeContents(join(CWD, blob.FILE_NAME), blob.CONTENT);
         }
     }
@@ -257,7 +279,8 @@ public class Repository {
             List<String> cwdFiles = plainFilenamesIn(CWD);
             if (cwdFiles != null) {
                 for (String file : cwdFiles) {
-                    if (branch.FILENAME_TO_BLOBHASH.containsKey(file) && !cur.FILENAME_TO_BLOBHASH.containsKey(file)) {
+                    if (branch.FILENAME_TO_BLOBHASH.containsKey(file)
+                            && !cur.FILENAME_TO_BLOBHASH.containsKey(file)) {
                         System.out.println("There is an untracked file in the way;"
                                 + " delete it, or add and commit it first.");
                         return;
@@ -289,8 +312,22 @@ public class Repository {
             System.out.println("A branch with that name already exists.");
             return;
         }
-        currentStatus.branchNameToCommit.put(branchName, currentStatus.getCurrentCommit().SHA1_HASHCODE);
+        currentStatus.branchNameToCommit.put(branchName,
+                currentStatus.getCurrentCommit().SHA1_HASHCODE);
         saveStatus();
     }
 
+    public static void rmBranch(String branchName) {
+        loadStatus();
+        if (!currentStatus.branchNameToCommit.containsKey(branchName)) {
+            System.out.println("A branch with that name does not exist.");
+            return;
+        }
+        if (Objects.equals(currentStatus.head, branchName)) {
+            System.out.println("Cannot remove the current branch.");
+            return;
+        }
+        currentStatus.branchNameToCommit.remove(branchName);
+        saveStatus();
+    }
 }

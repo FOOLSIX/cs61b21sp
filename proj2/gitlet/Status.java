@@ -20,7 +20,8 @@ public class Status implements Serializable {
     }
 
     public Commit getCurrentCommit() {
-        return Utils.readObject(Utils.join(Repository.COMMIT_DIR, branchNameToCommit.get(head)), Commit.class);
+        return Utils.readObject(Utils.join(Repository.COMMIT_DIR, branchNameToCommit.get(head)),
+                Commit.class);
     }
 
     public void updateHead(String commitHash) {

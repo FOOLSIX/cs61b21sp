@@ -121,7 +121,10 @@ public class Main {
                 break;
             case "rm-branch":
                 checkInit();
-
+                if (args.length != 2) {
+                    incorrectOperands();
+                }
+                Repository.rmBranch(args[1]);
                 break;
             case "reset":
                 checkInit();
