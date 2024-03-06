@@ -215,12 +215,12 @@ public class Repository {
             System.out.println(removedFile);
         }
         System.out.print("\n");
-        //TODO: extra part
+
         System.out.println("=== Modifications Not Staged For Commit ===\n");
         System.out.println("=== Untracked Files ===\n");
     }
 
-    private static void checkoutNotFoundCommit() {
+    private static void notFoundCommit() {
         System.out.println("No commit with that id exists.");
         System.exit(0);
     }
@@ -232,25 +232,25 @@ public class Repository {
 
     public static void checkout2(String commitID, String filename) {
         File file = null;
-        if(commitID.length() == 40) {
+        if (commitID.length() == 40) {
             file = join(COMMIT_DIR, commitID);
             if (!file.exists()) {
-                checkoutNotFoundCommit();
+                notFoundCommit();
             }
         } else {
             if (Utils.plainFilenamesIn(COMMIT_DIR) == null) {
-                checkoutNotFoundCommit();
+                notFoundCommit();
             }
-            for (String ID : Utils.plainFilenamesIn(COMMIT_DIR)) {
-                String shortID = ID.substring(0, commitID.length() - 1);
+            for (String id : Utils.plainFilenamesIn(COMMIT_DIR)) {
+                String shortID = id.substring(0, commitID.length());
                 if (Objects.equals(shortID, commitID)) {
-                    file = join(COMMIT_DIR, ID);
+                    file = join(COMMIT_DIR, id);
                     break;
                 }
             }
         }
         if (file == null) {
-            checkoutNotFoundCommit();
+            notFoundCommit();
         }
         Commit cur = readObject(file, Commit.class);
 
@@ -328,6 +328,17 @@ public class Repository {
             return;
         }
         currentStatus.branchNameToCommit.remove(branchName);
+        saveStatus();
+    }
+
+    public static void reset(String commitID) {
+        File commitFile = join(COMMIT_DIR, commitID);
+        if (!commitFile.exists()) {
+            notFoundCommit();
+        }
+        loadStatus();
+        currentStatus.branchNameToCommit.put(currentStatus.head, commitID);
+        checkout3(currentStatus.head);
         saveStatus();
     }
 }

@@ -128,7 +128,10 @@ public class Main {
                 break;
             case "reset":
                 checkInit();
-
+                if (args.length != 2) {
+                    incorrectOperands();
+                }
+                Repository.reset(args[1]);
                 break;
             case "merge":
                 checkInit();

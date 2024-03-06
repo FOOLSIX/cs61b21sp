@@ -72,7 +72,7 @@ public class Commit implements Serializable {
                 }
             }
         }
-        //AG should be this
+
         Formatter formatter = new Formatter();
         formatter.format("%ta %tb %te %tT %tY %tz", DATE, DATE, DATE, DATE, DATE, DATE);
         System.out.println("Date: " + formatter);
