@@ -1,19 +1,18 @@
 package gitlet;
-import java.io.File;
 import java.io.Serializable;
 import java.util.*;
 
-public class Statue implements Serializable {
+public class Status implements Serializable {
     /** The branch currently pointed to */
-    public String head;
+    String head;
     /** A set contains filenames in staging area. */
-    public Set<String> stagingArea;
+    Set<String> stagingArea;
     /** A set contains names of files to be removed. */
-    public Set<String> deletedArea;
+    Set<String> deletedArea;
 
-    public Map<String, String> branchNameToCommit;
+    Map<String, String> branchNameToCommit;
 
-    public Statue() {
+    public Status() {
         head = "master";
         stagingArea = new HashSet<>();
         deletedArea = new HashSet<>();

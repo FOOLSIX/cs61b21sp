@@ -1,13 +1,13 @@
 package gitlet;
 
-import java.io.DataInput;
 import java.io.Serializable;
 import java.util.*;
 
-/** Represents a gitlet commit object.
- *  does at a high level.
+/**
+ * Represents a gitlet commit object.
+ * does at a high level.
  *
- *  @author 2580368016
+ * @author 2580368016
  */
 public class Commit implements Serializable {
     /*
@@ -16,14 +16,20 @@ public class Commit implements Serializable {
       variable is used. We've provided one example for `message`.
      */
 
-    /** The message of this Commit. */
-    public final String MESSAGE;
-    /** The date of this Commit. */
-    public final Date DATE;
-    public final List<String> FATHER;
-    /** Save all filenames and map to its blob's hashcode */
-    public final Map<String, String> FILENAME_TO_BLOBHASH = new HashMap<>();
-    public final String SHA1_HASHCODE;
+    /**
+     * The message of this Commit.
+     */
+    final String MESSAGE;
+    /**
+     * The date of this Commit.
+     */
+    final Date DATE;
+    final List<String> FATHER;
+    /**
+     * Save all filenames and map to its blob's hashcode
+     */
+    final Map<String, String> FILENAME_TO_BLOBHASH = new HashMap<>();
+    final String SHA1_HASHCODE;
 
     public Commit(String msg, List<String> fa) {
         MESSAGE = msg;
@@ -56,18 +62,19 @@ public class Commit implements Serializable {
     public void printCommit() {
         System.out.println("===");
         System.out.println("commit " + SHA1_HASHCODE);
-        if (FATHER!= null && FATHER.size() > 1) {
+        if (FATHER != null && FATHER.size() > 1) {
             for (int i = 0; i < FATHER.size(); ++i) {
                 System.out.print(FATHER.get(i).substring(0, 6));
-                if (i == FATHER.size() - 1)
+                if (i == FATHER.size() - 1) {
                     System.out.print('\n');
-                else
+                } else {
                     System.out.print(' ');
+                }
             }
         }
         //AG should be this
         Formatter formatter = new Formatter();
-        formatter.format("%ta %tb %te %tT %tY %tz", DATE,DATE,DATE,DATE,DATE,DATE);
+        formatter.format("%ta %tb %te %tT %tY %tz", DATE, DATE, DATE, DATE, DATE, DATE);
         System.out.println("Date: " + formatter);
         System.out.println(MESSAGE + '\n');
 

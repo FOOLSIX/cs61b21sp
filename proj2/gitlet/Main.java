@@ -84,7 +84,7 @@ public class Main {
                 if (args.length != 1) {
                     incorrectOperands();
                 }
-                Repository.global_log();
+                Repository.globalLog();
                 break;
             case "find":
                 checkInit();
