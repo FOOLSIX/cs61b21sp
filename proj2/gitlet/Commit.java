@@ -28,16 +28,27 @@ public class Commit implements Serializable {
     /**
      * Save all filenames and map to its blob's hashcode
      */
-    final Map<String, String> FILENAME_TO_BLOBHASH = new HashMap<>();
+    Map<String, String> FILENAME_TO_BLOBHASH;
     final String SHA1_HASHCODE;
 
-    public Commit(String msg, List<String> fa) {
+    public Commit(String msg, String fa) {
         MESSAGE = msg;
         DATE = new Date();
-        for (String f : fa) {
-            Commit father = getCommit(f);
-            FILENAME_TO_BLOBHASH.putAll(father.FILENAME_TO_BLOBHASH);
-        }
+        FILENAME_TO_BLOBHASH = new HashMap<>();
+        Commit father = getCommit(fa);
+        FILENAME_TO_BLOBHASH.putAll(father.FILENAME_TO_BLOBHASH);
+        FATHER = Collections.singletonList(fa);
+        HashSet<String> hashArgs = new HashSet<>();
+        hashArgs.add(MESSAGE);
+        hashArgs.add(DATE.toString());
+        hashArgs.add(fa);
+        hashArgs.addAll(FILENAME_TO_BLOBHASH.values());
+        SHA1_HASHCODE = Utils.sha1(hashArgs.toArray());
+    }
+    public Commit(String msg, Map<String, String> filenameToBlobHash, List<String> fa) {
+        MESSAGE = msg;
+        DATE = new Date();
+        FILENAME_TO_BLOBHASH = filenameToBlobHash;
         FATHER = fa;
         HashSet<String> hashArgs = new HashSet<>();
         hashArgs.add(MESSAGE);
@@ -47,10 +58,12 @@ public class Commit implements Serializable {
         SHA1_HASHCODE = Utils.sha1(hashArgs.toArray());
     }
 
+
     public Commit() {
         MESSAGE = "initial commit";
         DATE = new Date(0);
         FATHER = null;
+        FILENAME_TO_BLOBHASH = new HashMap<>();
         HashSet<String> hashArgs = new HashSet<>();
         SHA1_HASHCODE = Utils.sha1(MESSAGE, DATE.toString());
     }

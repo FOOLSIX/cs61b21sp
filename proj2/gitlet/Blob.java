@@ -15,4 +15,7 @@ public class Blob implements Serializable {
     public void save() {
         Utils.writeObject(Utils.join(Repository.BLOB_DIR, SHA1_HASHCODE), this);
     }
+    public static Blob getBlob(String blobHash) {
+        return Utils.readObject(Utils.join(Repository.BLOB_DIR, blobHash), Blob.class);
+    }
 }

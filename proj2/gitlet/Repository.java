@@ -1,10 +1,7 @@
 package gitlet;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 import static gitlet.Utils.*;
 
@@ -74,7 +71,7 @@ public class Repository {
         File fileToBeAdded = join(CWD, fileName);
         File stagingFile = join(STAGED_DIR, fileName);
         Blob blob = new Blob(fileToBeAdded);
-        Commit cur = currentStatus.getCurrentCommit();
+        Commit cur = currentStatus.getCommit(currentStatus.head);
 
         if (cur.FILENAME_TO_BLOBHASH.containsKey(fileName)
                 && Objects.equals(cur.FILENAME_TO_BLOBHASH.get(fileName), blob.SHA1_HASHCODE)) {
@@ -94,14 +91,13 @@ public class Repository {
 
     public static void commit(String message) {
         loadStatus();
-        Commit lastCommit = currentStatus.getCurrentCommit();
+        Commit lastCommit = currentStatus.getCommit(currentStatus.head);
         if (currentStatus.stagingArea.size() == 0 && currentStatus.deletedArea.size() == 0) {
             System.out.println("No changes added to the commit.");
             return;
         }
 
-        Commit newCommit = new Commit(message,
-                new ArrayList<>(Collections.singletonList(lastCommit.SHA1_HASHCODE)));
+        Commit newCommit = new Commit(message, lastCommit.SHA1_HASHCODE);
         currentStatus.updateHead(newCommit.SHA1_HASHCODE);
 
 
@@ -132,25 +128,26 @@ public class Repository {
         loadStatus();
         File fileToBeRemoved = join(CWD, filename);
         File stagedFile = join(STAGED_DIR, filename);
-        Commit cur = currentStatus.getCurrentCommit();
+        Commit cur = currentStatus.getCommit(currentStatus.head);
         if (stagedFile.exists()) {
             stagedFile.delete();
             currentStatus.stagingArea.remove(filename);
-        } else if (cur.FILENAME_TO_BLOBHASH.containsKey(filename)) {
+        } else if (cur.FILENAME_TO_BLOBHASH.containsKey(filename)
+                && !currentStatus.deletedArea.contains(filename)) {
             currentStatus.deletedArea.add(filename);
             if (join(CWD, filename).exists()) {
                 writeContents(stagedFile, readContents(fileToBeRemoved));
                 join(CWD, filename).delete();
             }
         } else {
-            System.out.println("No reason to remove the file.\n");
+            System.out.println("No reason to remove the file.");
         }
         saveStatus();
     }
 
     public static void log() {
         loadStatus();
-        Commit curCommit = currentStatus.getCurrentCommit();
+        Commit curCommit = currentStatus.getCommit(currentStatus.head);
         while (true) {
             curCommit.printCommit();
             if (curCommit.FATHER == null) {
@@ -167,7 +164,7 @@ public class Repository {
             return;
         }
         for (String filename : filenames) {
-            Commit commit = readObject(join(COMMIT_DIR, filename), Commit.class);
+            Commit commit = Commit.getCommit(filename);
             commit.printCommit();
         }
     }
@@ -181,7 +178,7 @@ public class Repository {
         }
         boolean find = false;
         for (String filename : filenames) {
-            Commit commit = readObject(join(COMMIT_DIR, filename), Commit.class);
+            Commit commit = Commit.getCommit(filename);
             if (Objects.equals(commit.MESSAGE, msg)) {
                 find = true;
                 System.out.println(commit.SHA1_HASHCODE);
@@ -226,7 +223,7 @@ public class Repository {
     }
     public static void checkout1(String filename) {
         loadStatus();
-        checkout2(currentStatus.getCurrentCommit().SHA1_HASHCODE, filename);
+        checkout2(currentStatus.getCommit(currentStatus.head).SHA1_HASHCODE, filename);
 
     }
 
@@ -258,8 +255,7 @@ public class Repository {
             System.out.println("File does not exist in that commit.");
         } else {
             
-            Blob blob = readObject(join(BLOB_DIR,
-                    cur.FILENAME_TO_BLOBHASH.get(filename)), Blob.class);
+            Blob blob = Blob.getBlob(cur.FILENAME_TO_BLOBHASH.get(filename));
             writeContents(join(CWD, blob.FILE_NAME), blob.CONTENT);
         }
     }
@@ -272,9 +268,8 @@ public class Repository {
         } else if (Objects.equals(branchName, currentStatus.head)) {
             System.out.println("No need to checkout the current branch.");
         } else {
-            Commit cur = currentStatus.getCurrentCommit();
-            Commit branch = readObject(join(COMMIT_DIR,
-                    currentStatus.branchNameToCommit.get(branchName)), Commit.class);
+            Commit cur = currentStatus.getCommit(currentStatus.head);
+            Commit branch = currentStatus.getCommit(branchName);
             //try to delete tracked files
             List<String> cwdFiles = plainFilenamesIn(CWD);
             if (cwdFiles != null) {
@@ -289,7 +284,7 @@ public class Repository {
             }
             //restore files
             for (var e : branch.FILENAME_TO_BLOBHASH.entrySet()) {
-                Blob blob = readObject(join(BLOB_DIR, e.getValue()), Blob.class);
+                Blob blob = Blob.getBlob(e.getValue());
                 writeContents(join(CWD, e.getKey()), blob.CONTENT);
             }
             //delete tracked files
@@ -319,7 +314,7 @@ public class Repository {
             return;
         }
         currentStatus.branchNameToCommit.put(branchName,
-                currentStatus.getCurrentCommit().SHA1_HASHCODE);
+                currentStatus.getCommit(currentStatus.head).SHA1_HASHCODE);
         saveStatus();
     }
 
@@ -352,5 +347,137 @@ public class Repository {
         currentStatus.branchNameToCommit.replace(originBranch, commitID);
         saveStatus();
         rmBranch(commitID);
+    }
+
+    private static void getAncestor(String commitID, HashSet<String> commits) {
+        commits.add(commitID);
+        Commit cur = Commit.getCommit(commitID);
+        if (cur.FATHER == null) {
+            return;
+        }
+        for (String fa : cur.FATHER) {
+            getAncestor(fa, commits);
+        }
+    }
+    private static String getSameAncestorHelper(String commit, HashSet<String> commits) {
+        Queue<String> q = new LinkedList<>();
+        q.add(commit);
+        while (!q.isEmpty()) {
+            Commit cur = Commit.getCommit(q.poll());
+            if (commits.contains(cur.SHA1_HASHCODE)) {
+                return cur.SHA1_HASHCODE;
+            }
+            q.addAll(cur.FATHER);
+        }
+        return null;
+    }
+    private static String getSameAncestor(String branch1, String branch2) {
+        String commit1 =  currentStatus.getCommit(branch1).SHA1_HASHCODE;
+        String commit2 =  currentStatus.getCommit(branch2).SHA1_HASHCODE;
+        HashSet<String> commit1Ancestors = new HashSet<>();
+        getAncestor(commit1, commit1Ancestors);
+        return getSameAncestorHelper(commit2, commit1Ancestors);
+    }
+    public static String checkMerge(String branchName) {
+        if (!currentStatus.branchNameToCommit.containsKey(branchName)) {
+            System.out.println("A branch with that name does not exist.");
+            System.exit(0);
+        }
+        if (Objects.equals(branchName, currentStatus.head)) {
+            System.out.println("Cannot merge a branch with itself.");
+            System.exit(0);
+        }
+        if (currentStatus.stagingArea.size() != 0 || currentStatus.deletedArea.size() != 0) {
+            System.out.println("You have uncommitted changes.");
+            System.exit(0);
+        }
+        Commit branch = currentStatus.getCommit(branchName);
+        Commit cur = currentStatus.getCommit(currentStatus.head);
+        List<String> cwdFiles = plainFilenamesIn(CWD);
+        if (cwdFiles != null) {
+            for (String file : cwdFiles) {
+                if (!cur.FILENAME_TO_BLOBHASH.containsKey(file)
+                        && branch.FILENAME_TO_BLOBHASH.containsKey(file)) {
+                    System.out.println("There is an untracked file in the way;"
+                            + " delete it, or add and commit it first.");
+                    System.exit(0);
+                }
+            }
+        }
+
+        String ancestor = getSameAncestor(currentStatus.head, branchName);
+        if (Objects.equals(branchName, ancestor)) {
+            System.out.println("Given branch is an ancestor of the current branch.");
+            System.exit(0);
+        }
+        if (Objects.equals(currentStatus.head, ancestor)) {
+            System.out.println("Current branch fast-forwarded.");
+            System.exit(0);
+        }
+        return ancestor;
+    }
+    private static boolean isEqualFile(Commit commit1, Commit commit2, String filename) {
+        return Objects.equals(commit1.FILENAME_TO_BLOBHASH.get(filename),
+                commit2.FILENAME_TO_BLOBHASH.get(filename));
+    }
+    public static void merge(String branchName) {
+        loadStatus();
+        String ancestor = checkMerge(branchName);
+        Commit cur = currentStatus.getCommit(currentStatus.head);
+        Commit branch = currentStatus.getCommit(branchName);
+        Commit ancestorCommit = Commit.getCommit(ancestor);
+        HashMap<String, String> filenamesToBlob = new HashMap<>();
+        filenamesToBlob.putAll(cur.FILENAME_TO_BLOBHASH);
+        for (Map.Entry<String, String> e : branch.FILENAME_TO_BLOBHASH.entrySet()) {
+            String filename = e.getKey();
+            String blobHash = e.getValue();
+            if (cur.FILENAME_TO_BLOBHASH.containsKey(filename)) {
+                //Any files that have been modified in the given branch since the split point,
+                // but not modified in the current branch since the split point
+                // should be changed to their versions in the given branch
+                //These files should then all be automatically staged.
+                if (isEqualFile(cur, ancestorCommit, filename)
+                        && !isEqualFile(branch, cur, filename)) {
+                    currentStatus.stagingArea.add(filename);
+                    writeContents(join(STAGED_DIR, filename), Blob.getBlob(blobHash).CONTENT);
+                    filenamesToBlob.replace(filename, blobHash);
+                    writeContents(join(CWD, filename), Blob.getBlob(blobHash).CONTENT);
+                //conflict case
+                } else if (!isEqualFile(cur, ancestorCommit, filename)
+                        && !isEqualFile(branch, ancestorCommit, filename)) {
+                    File file = join(CWD, filename);
+                    Blob headBlob = Blob.getBlob(cur.FILENAME_TO_BLOBHASH.get(filename));
+                    Blob branchBlob = Blob.getBlob(branch.FILENAME_TO_BLOBHASH.get(filename));
+                    writeContents(file, "<<<<<<< HEAD\n", headBlob.CONTENT,
+                            "=======\n", branchBlob.CONTENT,
+                            ">>>>>>>\n");
+                    System.out.println("Encountered a merge conflict.");
+                }
+            } else {
+                //Any files that were not present at the split point
+                //and are present only in the given branch should be checked out and staged.
+                if (!isEqualFile(branch, ancestorCommit, filename)) {
+                    Blob blob = Blob.getBlob(blobHash);
+                    currentStatus.stagingArea.add(blob.FILE_NAME);
+                    writeContents(join(STAGED_DIR, blob.FILE_NAME), blob.CONTENT);
+                }
+            }
+        }
+        for (Map.Entry<String, String> e : cur.FILENAME_TO_BLOBHASH.entrySet()) {
+            String filename = e.getKey();
+            //Any files present at the split point, unmodified in the current branch,
+            // and absent in the given branch should be removed (and untracked).
+            if (!branch.FILENAME_TO_BLOBHASH.containsKey(filename)
+                    && isEqualFile(cur, ancestorCommit, filename)) {
+                join(CWD, filename).delete();
+                filenamesToBlob.remove(filename);
+            }
+        }
+        Commit newCommit = new Commit("Merged " + branchName + " into "
+                + currentStatus.head + ".", filenamesToBlob,
+                List.of(new String[]{cur.SHA1_HASHCODE, branch.SHA1_HASHCODE}));
+        newCommit.save();
+        currentStatus.branchNameToCommit.replace(currentStatus.head, newCommit.SHA1_HASHCODE);
+        saveStatus();
     }
 }

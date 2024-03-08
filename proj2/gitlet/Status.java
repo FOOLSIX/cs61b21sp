@@ -19,9 +19,9 @@ public class Status implements Serializable {
         branchNameToCommit = new TreeMap<>();
     }
 
-    public Commit getCurrentCommit() {
-        return Utils.readObject(Utils.join(Repository.COMMIT_DIR, branchNameToCommit.get(head)),
-                Commit.class);
+    public Commit getCommit(String branchName) {
+        return Utils.readObject(Utils.join(Repository.COMMIT_DIR,
+                        branchNameToCommit.get(branchName)), Commit.class);
     }
 
     public void updateHead(String commitHash) {
