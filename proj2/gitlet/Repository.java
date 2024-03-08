@@ -213,6 +213,26 @@ public class Repository {
         System.out.print("\n");
 
         System.out.println("=== Modifications Not Staged For Commit ===\n");
+        TreeSet<String> ts = new TreeSet<>();
+        Commit cur = currentStatus.getCommit(currentStatus.head);
+        List<String> cwdFiles = plainFilenamesIn(CWD);
+        for (String filename : cur.FILENAME_TO_BLOBHASH.keySet()) {
+            if (cwdFiles.contains(filename)) {
+                Blob blob = new Blob(join(CWD, filename));
+                if (!Objects.equals(blob.SHA1_HASHCODE, cur.FILENAME_TO_BLOBHASH.get(filename))) {
+                    ts.add(filename + "(modified)");
+                }
+            } else {
+                ts.add(filename + "(deleted)");
+            }
+        }
+        for (String filename : currentStatus.stagingArea) {
+            if (!cwdFiles.contains(filename)) {
+                ts.add(filename + "(deleted)");
+            }
+        }
+        System.out.println(ts);
+
         System.out.println("=== Untracked Files ===\n");
     }
 
