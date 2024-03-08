@@ -451,7 +451,8 @@ public class Repository {
                     } else {
                         headContent = new byte[0];
                     }
-                    var branchContent = Blob.getBlob(branch.FILENAME_TO_BLOBHASH.get(filename)).CONTENT;
+                    var branchContent =
+                            Blob.getBlob(branch.FILENAME_TO_BLOBHASH.get(filename)).CONTENT;
                     writeContents(file, "<<<<<<< HEAD\n", headContent,
                             "=======\n", branchContent,
                             ">>>>>>>\n");
@@ -475,7 +476,7 @@ public class Repository {
                 if (isEqualFile(cur, ancestorCommit, filename)) {
                     join(CWD, filename).delete();
                     filenamesToBlob.remove(filename);
-                } else if (ancestorCommit.FILENAME_TO_BLOBHASH.containsKey(filename)){
+                } else if (ancestorCommit.FILENAME_TO_BLOBHASH.containsKey(filename)) {
                     //conflict case
                     var headContent = Blob.getBlob(cur.FILENAME_TO_BLOBHASH.get(filename)).CONTENT;
                     writeContents(join(CWD, filename), "<<<<<<< HEAD\n", headContent,
@@ -483,6 +484,10 @@ public class Repository {
                     conflict = true;
                 }
             }
+        }
+        for (String s : plainFilenamesIn(CWD)) {
+            System.out.println(s);
+            System.out.println(new String(readContents(join(CWD, s))));
         }
         if (conflict) {
             System.out.println("Encountered a merge conflict.");
