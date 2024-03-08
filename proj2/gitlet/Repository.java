@@ -100,14 +100,6 @@ public class Repository {
         Commit newCommit = new Commit(message, lastCommit.SHA1_HASHCODE);
         currentStatus.updateHead(newCommit.SHA1_HASHCODE);
 
-
-        for (String removedFile : currentStatus.deletedArea) {
-            if (!join(STAGED_DIR, removedFile).exists()) {
-                newCommit.FILENAME_TO_BLOBHASH.remove(removedFile);
-            }
-        }
-        currentStatus.deletedArea.clear();
-
         List<String> stagedDir = Utils.plainFilenamesIn(STAGED_DIR);
         if (stagedDir != null) {
             for (String filename : stagedDir) {
@@ -119,6 +111,13 @@ public class Repository {
             }
         }
         currentStatus.stagingArea.clear();
+
+        for (String removedFile : currentStatus.deletedArea) {
+            if (!join(STAGED_DIR, removedFile).exists()) {
+                newCommit.FILENAME_TO_BLOBHASH.remove(removedFile);
+            }
+        }
+        currentStatus.deletedArea.clear();
 
         newCommit.save();
         saveStatus();
@@ -406,11 +405,12 @@ public class Repository {
         }
 
         String ancestor = getSameAncestor(currentStatus.head, branchName);
-        if (Objects.equals(branchName, ancestor)) {
+        if (Objects.equals(branch.SHA1_HASHCODE, ancestor)) {
             System.out.println("Given branch is an ancestor of the current branch.");
             System.exit(0);
         }
-        if (Objects.equals(currentStatus.head, ancestor)) {
+        if (Objects.equals(cur.SHA1_HASHCODE, ancestor)) {
+            checkout3(branchName);
             System.out.println("Current branch fast-forwarded.");
             System.exit(0);
         }
@@ -438,8 +438,8 @@ public class Repository {
                 //These files should then all be automatically staged.
                 if (isEqualFile(cur, ancestorCommit, filename)
                         && !isEqualFile(branch, cur, filename)) {
-                    currentStatus.stagingArea.add(filename);
-                    writeContents(join(STAGED_DIR, filename), Blob.getBlob(blobHash).CONTENT);
+//                    currentStatus.stagingArea.add(filename);
+//                    writeContents(join(STAGED_DIR, filename), Blob.getBlob(blobHash).CONTENT);
                     filenamesToBlob.replace(filename, blobHash);
                     writeContents(join(CWD, filename), Blob.getBlob(blobHash).CONTENT);
                 //conflict case
@@ -458,8 +458,8 @@ public class Repository {
                 //and are present only in the given branch should be checked out and staged.
                 if (!isEqualFile(branch, ancestorCommit, filename)) {
                     Blob blob = Blob.getBlob(blobHash);
-                    currentStatus.stagingArea.add(blob.FILE_NAME);
-                    writeContents(join(STAGED_DIR, blob.FILE_NAME), blob.CONTENT);
+                    filenamesToBlob.put(filename, blobHash);
+                    writeContents(join(CWD, blob.FILE_NAME), blob.CONTENT);
                 }
             }
         }

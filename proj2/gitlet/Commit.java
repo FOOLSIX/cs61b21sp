@@ -76,8 +76,9 @@ public class Commit implements Serializable {
         System.out.println("===");
         System.out.println("commit " + SHA1_HASHCODE);
         if (FATHER != null && FATHER.size() > 1) {
+            System.out.print("Merge: ");
             for (int i = 0; i < FATHER.size(); ++i) {
-                System.out.print(FATHER.get(i).substring(0, 6));
+                System.out.print(FATHER.get(i).substring(0, 7));
                 if (i == FATHER.size() - 1) {
                     System.out.print('\n');
                 } else {
