@@ -14,8 +14,8 @@ public class Status implements Serializable {
 
     public Status() {
         head = "master";
-        stagingArea = new HashSet<>();
-        deletedArea = new HashSet<>();
+        stagingArea = new TreeSet<>();
+        deletedArea = new TreeSet<>();
         branchNameToCommit = new TreeMap<>();
     }
 

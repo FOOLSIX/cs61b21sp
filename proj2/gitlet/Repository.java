@@ -201,18 +201,14 @@ public class Repository {
         System.out.print("\n");
 
         System.out.println("=== Staged Files ===");
-        for (String stagedFile : currentStatus.stagingArea) {
-            System.out.println(stagedFile);
-        }
+        currentStatus.stagingArea.forEach(System.out::println);
         System.out.print("\n");
 
         System.out.println("=== Removed Files ===");
-        for (String removedFile : currentStatus.deletedArea) {
-            System.out.println(removedFile);
-        }
+        currentStatus.deletedArea.forEach(System.out::println);
         System.out.print("\n");
 
-        System.out.println("=== Modifications Not Staged For Commit ===\n");
+        System.out.println("=== Modifications Not Staged For Commit ===");
         TreeSet<String> ts = new TreeSet<>();
         Commit cur = currentStatus.getCommit(currentStatus.head);
         List<String> cwdFiles = plainFilenamesIn(CWD);
@@ -231,9 +227,18 @@ public class Repository {
                 ts.add(filename + "(deleted)");
             }
         }
-        System.out.println(ts);
-
-        System.out.println("=== Untracked Files ===\n");
+        ts.forEach(System.out::println);
+        System.out.print("\n");
+        System.out.println("=== Untracked Files ===");
+        TreeSet<String> untracked = new TreeSet<>();
+        for (String filename : plainFilenamesIn(CWD)) {
+            if (!cur.FILENAME_TO_BLOBHASH.containsKey(filename)
+                    && !currentStatus.stagingArea.contains(filename)) {
+                untracked.add(filename);
+            }
+        }
+        untracked.forEach(System.out::println);
+        System.out.print("\n");
     }
 
     private static void notFoundCommit() {
