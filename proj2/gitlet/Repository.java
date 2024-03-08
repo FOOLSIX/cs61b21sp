@@ -428,6 +428,7 @@ public class Repository {
         Commit ancestorCommit = Commit.getCommit(ancestor);
         HashMap<String, String> filenamesToBlob = new HashMap<>();
         filenamesToBlob.putAll(cur.FILENAME_TO_BLOBHASH);
+        boolean conflict = false;
         for (Map.Entry<String, String> e : branch.FILENAME_TO_BLOBHASH.entrySet()) {
             String filename = e.getKey();
             String blobHash = e.getValue();
@@ -438,20 +439,23 @@ public class Repository {
                 //These files should then all be automatically staged.
                 if (isEqualFile(cur, ancestorCommit, filename)
                         && !isEqualFile(branch, cur, filename)) {
-//                    currentStatus.stagingArea.add(filename);
-//                    writeContents(join(STAGED_DIR, filename), Blob.getBlob(blobHash).CONTENT);
                     filenamesToBlob.replace(filename, blobHash);
                     writeContents(join(CWD, filename), Blob.getBlob(blobHash).CONTENT);
                 //conflict case
                 } else if (!isEqualFile(cur, ancestorCommit, filename)
                         && !isEqualFile(branch, ancestorCommit, filename)) {
                     File file = join(CWD, filename);
-                    Blob headBlob = Blob.getBlob(cur.FILENAME_TO_BLOBHASH.get(filename));
-                    Blob branchBlob = Blob.getBlob(branch.FILENAME_TO_BLOBHASH.get(filename));
-                    writeContents(file, "<<<<<<< HEAD\n", headBlob.CONTENT,
-                            "=======\n", branchBlob.CONTENT,
+                    byte[] headContent;
+                    if (cur.FILENAME_TO_BLOBHASH.containsKey(filename)) {
+                        headContent = Blob.getBlob(cur.FILENAME_TO_BLOBHASH.get(filename)).CONTENT;
+                    } else {
+                        headContent = new byte[0];
+                    }
+                    var branchContent = Blob.getBlob(branch.FILENAME_TO_BLOBHASH.get(filename)).CONTENT;
+                    writeContents(file, "<<<<<<< HEAD\n", headContent,
+                            "=======\n", branchContent,
                             ">>>>>>>\n");
-                    System.out.println("Encountered a merge conflict.");
+                    conflict = true;
                 }
             } else {
                 //Any files that were not present at the split point
@@ -465,13 +469,23 @@ public class Repository {
         }
         for (Map.Entry<String, String> e : cur.FILENAME_TO_BLOBHASH.entrySet()) {
             String filename = e.getKey();
-            //Any files present at the split point, unmodified in the current branch,
-            // and absent in the given branch should be removed (and untracked).
-            if (!branch.FILENAME_TO_BLOBHASH.containsKey(filename)
-                    && isEqualFile(cur, ancestorCommit, filename)) {
-                join(CWD, filename).delete();
-                filenamesToBlob.remove(filename);
+            if (!branch.FILENAME_TO_BLOBHASH.containsKey(filename)) {
+                //Any files present at the split point, unmodified in the current branch,
+                // and absent in the given branch should be removed (and untracked).
+                if (isEqualFile(cur, ancestorCommit, filename)) {
+                    join(CWD, filename).delete();
+                    filenamesToBlob.remove(filename);
+                } else if (ancestorCommit.FILENAME_TO_BLOBHASH.containsKey(filename)){
+                    //conflict case
+                    var headContent = Blob.getBlob(cur.FILENAME_TO_BLOBHASH.get(filename)).CONTENT;
+                    writeContents(join(CWD, filename), "<<<<<<< HEAD\n", headContent,
+                            "=======\n", ">>>>>>>\n");
+                    conflict = true;
+                }
             }
+        }
+        if (conflict) {
+            System.out.println("Encountered a merge conflict.");
         }
         Commit newCommit = new Commit("Merged " + branchName + " into "
                 + currentStatus.head + ".", filenamesToBlob,
