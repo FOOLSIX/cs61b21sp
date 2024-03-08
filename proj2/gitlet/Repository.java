@@ -201,44 +201,19 @@ public class Repository {
         System.out.print("\n");
 
         System.out.println("=== Staged Files ===");
-        currentStatus.stagingArea.forEach(System.out::println);
+        for (String stagedFile : currentStatus.stagingArea) {
+            System.out.println(stagedFile);
+        }
         System.out.print("\n");
 
         System.out.println("=== Removed Files ===");
-        currentStatus.deletedArea.forEach(System.out::println);
+        for (String removedFile : currentStatus.deletedArea) {
+            System.out.println(removedFile);
+        }
         System.out.print("\n");
 
-        System.out.println("=== Modifications Not Staged For Commit ===");
-        TreeSet<String> ts = new TreeSet<>();
-        Commit cur = currentStatus.getCommit(currentStatus.head);
-        List<String> cwdFiles = plainFilenamesIn(CWD);
-        for (String filename : cur.FILENAME_TO_BLOBHASH.keySet()) {
-            if (cwdFiles.contains(filename)) {
-                Blob blob = new Blob(join(CWD, filename));
-                if (!Objects.equals(blob.SHA1_HASHCODE, cur.FILENAME_TO_BLOBHASH.get(filename))) {
-                    ts.add(filename + "(modified)");
-                }
-            } else {
-                ts.add(filename + "(deleted)");
-            }
-        }
-        for (String filename : currentStatus.stagingArea) {
-            if (!cwdFiles.contains(filename)) {
-                ts.add(filename + "(deleted)");
-            }
-        }
-        ts.forEach(System.out::println);
-        System.out.print("\n");
-        System.out.println("=== Untracked Files ===");
-        TreeSet<String> untracked = new TreeSet<>();
-        for (String filename : plainFilenamesIn(CWD)) {
-            if (!cur.FILENAME_TO_BLOBHASH.containsKey(filename)
-                    && !currentStatus.stagingArea.contains(filename)) {
-                untracked.add(filename);
-            }
-        }
-        untracked.forEach(System.out::println);
-        System.out.print("\n");
+        System.out.println("=== Modifications Not Staged For Commit ===\n");
+        System.out.println("=== Untracked Files ===\n");
     }
 
     private static void notFoundCommit() {
@@ -476,8 +451,7 @@ public class Repository {
                     } else {
                         headContent = new byte[0];
                     }
-                    var branchContent =
-                            Blob.getBlob(branch.FILENAME_TO_BLOBHASH.get(filename)).CONTENT;
+                    var branchContent = Blob.getBlob(branch.FILENAME_TO_BLOBHASH.get(filename)).CONTENT;
                     writeContents(file, "<<<<<<< HEAD\n", headContent,
                             "=======\n", branchContent,
                             ">>>>>>>\n");
@@ -501,7 +475,7 @@ public class Repository {
                 if (isEqualFile(cur, ancestorCommit, filename)) {
                     join(CWD, filename).delete();
                     filenamesToBlob.remove(filename);
-                } else if (ancestorCommit.FILENAME_TO_BLOBHASH.containsKey(filename)) {
+                } else if (ancestorCommit.FILENAME_TO_BLOBHASH.containsKey(filename)){
                     //conflict case
                     var headContent = Blob.getBlob(cur.FILENAME_TO_BLOBHASH.get(filename)).CONTENT;
                     writeContents(join(CWD, filename), "<<<<<<< HEAD\n", headContent,
@@ -509,10 +483,6 @@ public class Repository {
                     conflict = true;
                 }
             }
-        }
-        for (String s : plainFilenamesIn(CWD)) {
-            System.out.println(s);
-            System.out.println(new String(readContents(join(CWD, s))));
         }
         if (conflict) {
             System.out.println("Encountered a merge conflict.");
