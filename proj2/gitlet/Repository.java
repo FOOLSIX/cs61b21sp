@@ -220,6 +220,7 @@ public class Repository {
         System.out.println("No commit with that id exists.");
         System.exit(0);
     }
+
     public static void checkout1(String filename) {
         loadStatus();
         checkout2(currentStatus.getCommit(currentStatus.head).SHA1_HASHCODE, filename);
@@ -253,7 +254,7 @@ public class Repository {
         if (!cur.FILENAME_TO_BLOBHASH.containsKey(filename)) {
             System.out.println("File does not exist in that commit.");
         } else {
-            
+
             Blob blob = Blob.getBlob(cur.FILENAME_TO_BLOBHASH.get(filename));
             writeContents(join(CWD, blob.FILE_NAME), blob.CONTENT);
         }
@@ -358,6 +359,7 @@ public class Repository {
             getAncestor(fa, commits);
         }
     }
+
     private static String getSameAncestorHelper(String commit, HashSet<String> commits) {
         Queue<String> q = new LinkedList<>();
         q.add(commit);
@@ -370,13 +372,15 @@ public class Repository {
         }
         return null;
     }
+
     private static String getSameAncestor(String branch1, String branch2) {
-        String commit1 =  currentStatus.getCommit(branch1).SHA1_HASHCODE;
-        String commit2 =  currentStatus.getCommit(branch2).SHA1_HASHCODE;
+        String commit1 = currentStatus.getCommit(branch1).SHA1_HASHCODE;
+        String commit2 = currentStatus.getCommit(branch2).SHA1_HASHCODE;
         HashSet<String> commit1Ancestors = new HashSet<>();
         getAncestor(commit1, commit1Ancestors);
         return getSameAncestorHelper(commit2, commit1Ancestors);
     }
+
     public static String checkMerge(String branchName) {
         if (!currentStatus.branchNameToCommit.containsKey(branchName)) {
             System.out.println("A branch with that name does not exist.");
@@ -416,10 +420,12 @@ public class Repository {
         }
         return ancestor;
     }
+
     private static boolean isEqualFile(Commit commit1, Commit commit2, String filename) {
         return Objects.equals(commit1.FILENAME_TO_BLOBHASH.get(filename),
                 commit2.FILENAME_TO_BLOBHASH.get(filename));
     }
+
     public static void merge(String branchName) {
         loadStatus();
         String ancestor = checkMerge(branchName);
@@ -441,7 +447,7 @@ public class Repository {
                         && !isEqualFile(branch, cur, filename)) {
                     filenamesToBlob.replace(filename, blobHash);
                     writeContents(join(CWD, filename), Blob.getBlob(blobHash).CONTENT);
-                //conflict case
+                    //conflict case
                 } else if (!isEqualFile(cur, ancestorCommit, filename)
                         && !isEqualFile(branch, ancestorCommit, filename)) {
                     File file = join(CWD, filename);
@@ -451,7 +457,8 @@ public class Repository {
                     } else {
                         headContent = new byte[0];
                     }
-                    var branchContent = Blob.getBlob(branch.FILENAME_TO_BLOBHASH.get(filename)).CONTENT;
+                    var branchContent =
+                            Blob.getBlob(branch.FILENAME_TO_BLOBHASH.get(filename)).CONTENT;
                     writeContents(file, "<<<<<<< HEAD\n", headContent,
                             "=======\n", branchContent,
                             ">>>>>>>\n");
@@ -475,7 +482,7 @@ public class Repository {
                 if (isEqualFile(cur, ancestorCommit, filename)) {
                     join(CWD, filename).delete();
                     filenamesToBlob.remove(filename);
-                } else if (ancestorCommit.FILENAME_TO_BLOBHASH.containsKey(filename)){
+                } else if (ancestorCommit.FILENAME_TO_BLOBHASH.containsKey(filename)) {
                     //conflict case
                     var headContent = Blob.getBlob(cur.FILENAME_TO_BLOBHASH.get(filename)).CONTENT;
                     writeContents(join(CWD, filename), "<<<<<<< HEAD\n", headContent,
